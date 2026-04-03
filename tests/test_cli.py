@@ -71,3 +71,10 @@ def test_no_args_default_to_claude_code_launch(monkeypatch, capsys) -> None:
     assert main(["--print-only"]) == 0
     out = capsys.readouterr().out
     assert "claude --model freedomcoder-qwen14-tools" in out
+
+
+def test_install_launcher_print_only(monkeypatch, capsys) -> None:
+    monkeypatch.setattr("freedomcoder.cli.path_contains", lambda directory: False)
+    assert main(["install-launcher", "--print-only"]) == 0
+    out = capsys.readouterr().out
+    assert "freedomcoder" in out

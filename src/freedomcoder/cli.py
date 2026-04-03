@@ -17,6 +17,13 @@ from freedomcoder.claude_code import (
 from freedomcoder.config import load_project_instructions, load_settings
 from freedomcoder.errors import FreedomCoderError, RuntimeIntegrationError
 from freedomcoder.hf import download_profile_quant
+from freedomcoder.launcher import (
+    default_target_dir,
+    install_launcher,
+    launcher_name,
+    path_contains,
+    path_hint,
+)
 from freedomcoder.ollama import (
     chat,
     create_model,
@@ -28,7 +35,9 @@ from freedomcoder.models import ModelProfile, Settings
 from freedomcoder.profiles import format_profile, list_profiles, load_profile
 from freedomcoder.prompting import build_task_prompt, collect_file_contexts
 
-KNOWN_COMMANDS = frozenset({"doctor", "profiles", "pull", "ollama", "task", "claude-code"})
+KNOWN_COMMANDS = frozenset(
+    {"doctor", "install-launcher", "profiles", "pull", "ollama", "task", "claude-code"}
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -39,6 +48,21 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("doctor", help="Inspect local configuration and runtime availability.")
+    install_parser = subparsers.add_parser(
+        "install-launcher",
+        help="Install a cross-platform one-word launcher into your user bin directory.",
+    )
+    install_parser.add_argument(
+        "--target-dir",
+        type=Path,
+        default=None,
+        help="Override the launcher install directory.",
+    )
+    install_parser.add_argument(
+        "--print-only",
+        action="store_true",
+        help="Print the target location and PATH hint without writing anything.",
+    )
 
     profiles_parser = subparsers.add_parser("profiles", help="Inspect built-in model profiles.")
     profiles_subparsers = profiles_parser.add_subparsers(dest="profiles_command", required=True)
@@ -187,6 +211,19 @@ def dispatch(args: argparse.Namespace) -> int:
     settings = load_settings(start=Path.cwd())
     if args.command == "doctor":
         _run_doctor(settings)
+        return 0
+    if args.command == "install-launcher":
+        target_dir = args.target_dir
+        if args.print_only:
+            resolved_target = (target_dir or default_target_dir()).resolve()
+            print(resolved_target / launcher_name())
+            if not path_contains(resolved_target):
+                print(path_hint(directory=resolved_target))
+            return 0
+        installed = install_launcher(target_dir=target_dir)
+        print(installed)
+        if not path_contains(installed.parent):
+            print(path_hint(directory=installed.parent))
         return 0
     if args.command == "profiles":
         if args.profiles_command == "list":

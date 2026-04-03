@@ -93,16 +93,23 @@ If you want to inspect the exact launch command first:
 uv run freedomcoder --print-only
 ```
 
-If you want a one-word command in PowerShell or `cmd.exe`, install the small Windows launcher once:
+If you want a one-word command on Windows, macOS, or Linux, install the launcher once:
 
 ```powershell
-python .\scripts\install_windows_cmd.py
+uv run freedomcoder install-launcher
 ```
 
 After that, you can run:
 
 ```powershell
 freedomcoder
+```
+
+If `freedomcoder` still is not found afterward, add `~/.local/bin` to your `PATH`.
+On macOS or Linux, that usually means adding this to your shell profile:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ### 2. Inspect built-in model profiles
@@ -221,6 +228,7 @@ See `examples/config/freedomcoder.toml` for a fuller sample.
 
 ```text
 freedomcoder doctor
+freedomcoder install-launcher
 freedomcoder profiles list
 freedomcoder profiles show flagship
 freedomcoder pull --profile flagship
