@@ -93,6 +93,18 @@ If you want to inspect the exact launch command first:
 uv run freedomcoder --print-only
 ```
 
+If you want a one-word command in PowerShell or `cmd.exe`, install the small Windows launcher once:
+
+```powershell
+python .\scripts\install_windows_cmd.py
+```
+
+After that, you can run:
+
+```powershell
+freedomcoder
+```
+
 ### 2. Inspect built-in model profiles
 
 ```powershell
