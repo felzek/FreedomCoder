@@ -30,3 +30,32 @@ def test_task_print_prompt_smoke(tmp_path: Path, monkeypatch, capsys) -> None:
     out = capsys.readouterr().out
     assert "Repository instructions" in out
     assert "sample.py" in out
+
+
+def test_claude_code_env_prints_expected_variables(capsys) -> None:
+    assert main(["claude-code", "env"]) == 0
+    out = capsys.readouterr().out
+    assert "ANTHROPIC_AUTH_TOKEN" in out
+    assert "ANTHROPIC_BASE_URL" in out
+    assert "claude --model freedomcoder-27b-q4km" in out
+
+
+def test_claude_code_launch_print_only_uses_requested_model(monkeypatch, capsys) -> None:
+    monkeypatch.setattr("freedomcoder.cli.claude_binary", lambda: "claude")
+    monkeypatch.setattr("freedomcoder.cli.ensure_model_available", lambda **kwargs: None)
+    assert (
+        main(
+            [
+                "claude-code",
+                "launch",
+                "--model",
+                "demo-model",
+                "--print-only",
+                "--",
+                "--dangerously-skip-permissions",
+            ]
+        )
+        == 0
+    )
+    out = capsys.readouterr().out
+    assert "claude --model demo-model --dangerously-skip-permissions" in out

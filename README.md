@@ -109,6 +109,12 @@ uv run freedomcoder pull --profile constrained --output-dir .freedomcoder\models
 uv run freedomcoder ollama create --profile flagship --gguf .freedomcoder\models\Qwen3.5-27B-heretic-v2-Q4_K_M.gguf
 ```
 
+If you already have a local Ollama model and want to wrap it with FreedomCoder's tool-aware template:
+
+```powershell
+uv run freedomcoder ollama create --profile flagship --from-model qwen14b-creative-uncensored:latest --name freedomcoder-qwen14-tools
+```
+
 ### 5. Run a focused coding task
 
 ```powershell
@@ -118,6 +124,39 @@ uv run freedomcoder task ^
   --mode patch ^
   "Suggest the smallest safe change to improve configuration error messages."
 ```
+
+### 6. Launch Claude Code against the local Ollama model
+
+Print the exact shell setup first:
+
+```powershell
+uv run freedomcoder claude-code env
+```
+
+Then launch Claude Code against the local FreedomCoder model:
+
+```powershell
+uv run freedomcoder claude-code launch
+```
+
+If you want to inspect the command without launching:
+
+```powershell
+uv run freedomcoder claude-code launch --print-only
+```
+
+If you want to target a different installed Ollama model while testing:
+
+```powershell
+uv run freedomcoder claude-code launch --model qwen14b-creative-uncensored
+```
+
+Notes:
+
+- This integration uses Ollama's Anthropic-compatible API so Claude Code can talk to a local model.
+- FreedomCoder's generated Ollama models use a tool-aware Qwen-style template so agent clients like Claude Code have a better chance of working correctly.
+- Claude Code itself recommends large context windows for best results. Ollama's current Claude Code integration docs recommend at least `64k` context when hardware allows it.
+- For a local 27B model, that context target can be expensive. Start smaller if needed and raise it only when the machine proves stable.
 
 ## Core Workflow
 
@@ -161,6 +200,8 @@ freedomcoder profiles show flagship
 freedomcoder pull --profile flagship
 freedomcoder ollama create --profile flagship --gguf <path>
 freedomcoder task --model <ollama-model> --files <paths...> "<task>"
+freedomcoder claude-code env
+freedomcoder claude-code launch
 ```
 
 ## What Is Actually Implemented Now
@@ -172,6 +213,7 @@ FreedomCoder v0.1 gives you:
 - Ollama import support
 - AGENTS-aware prompt construction
 - narrow local task execution
+- Claude Code launch support through Ollama's Anthropic-compatible endpoint
 
 It does **not** yet give you:
 

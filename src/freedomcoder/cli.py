@@ -7,6 +7,13 @@ import sys
 from pathlib import Path
 from typing import Sequence
 
+from freedomcoder.claude_code import (
+    claude_binary,
+    claude_version,
+    ensure_model_available,
+    format_shell_snippet,
+    launch as launch_claude_code,
+)
 from freedomcoder.config import load_project_instructions, load_settings
 from freedomcoder.errors import FreedomCoderError, RuntimeIntegrationError
 from freedomcoder.hf import download_profile_quant
@@ -45,7 +52,13 @@ def build_parser() -> argparse.ArgumentParser:
     ollama_subparsers = ollama_parser.add_subparsers(dest="ollama_command", required=True)
     create_parser = ollama_subparsers.add_parser("create", help="Create a local Ollama model.")
     create_parser.add_argument("--profile", default=None, help="Profile id to use.")
-    create_parser.add_argument("--gguf", type=Path, required=True, help="Path to the GGUF file.")
+    source_group = create_parser.add_mutually_exclusive_group(required=True)
+    source_group.add_argument("--gguf", type=Path, help="Path to the GGUF file.")
+    source_group.add_argument(
+        "--from-model",
+        default=None,
+        help="Existing local Ollama model to wrap with FreedomCoder's template.",
+    )
     create_parser.add_argument("--name", default=None, help="Ollama model name override.")
     create_parser.add_argument(
         "--context-window",
@@ -96,6 +109,58 @@ def build_parser() -> argparse.ArgumentParser:
         help="Print the constructed prompt instead of calling Ollama.",
     )
 
+    claude_parser = subparsers.add_parser(
+        "claude-code",
+        help="Launch or inspect Claude Code using Ollama as the backend.",
+    )
+    claude_subparsers = claude_parser.add_subparsers(dest="claude_command", required=True)
+
+    env_parser = claude_subparsers.add_parser(
+        "env",
+        help="Print shell commands for running Claude Code against the local Ollama model.",
+    )
+    env_parser.add_argument("--profile", default=None, help="Profile id for the default model name.")
+    env_parser.add_argument("--model", default=None, help="Ollama model name override.")
+    env_parser.add_argument(
+        "--shell",
+        choices=["powershell", "cmd", "bash"],
+        default="powershell",
+        help="Shell syntax to print.",
+    )
+    env_parser.add_argument(
+        "claude_args",
+        nargs=argparse.REMAINDER,
+        help="Extra Claude Code arguments to append after `--`.",
+    )
+
+    launch_parser = claude_subparsers.add_parser(
+        "launch",
+        help="Launch Claude Code against the local Ollama model.",
+    )
+    launch_parser.add_argument("--profile", default=None, help="Profile id for the default model name.")
+    launch_parser.add_argument("--model", default=None, help="Ollama model name override.")
+    launch_parser.add_argument(
+        "--print-only",
+        action="store_true",
+        help="Print the environment snippet instead of launching Claude Code.",
+    )
+    launch_parser.add_argument(
+        "--shell",
+        choices=["powershell", "cmd", "bash"],
+        default="powershell",
+        help="Shell syntax used for --print-only output.",
+    )
+    launch_parser.add_argument(
+        "--skip-model-check",
+        action="store_true",
+        help="Skip checking whether the target model exists in Ollama before launch.",
+    )
+    launch_parser.add_argument(
+        "claude_args",
+        nargs=argparse.REMAINDER,
+        help="Extra Claude Code arguments to append after `--`.",
+    )
+
     return parser
 
 
@@ -137,11 +202,16 @@ def dispatch(args: argparse.Namespace) -> int:
         if args.ollama_command == "create":
             profile = load_profile(args.profile or settings.default_profile)
             model_name = args.name or profile.default_model_name
-            if not args.gguf.is_file():
+            if args.gguf is not None and not args.gguf.is_file():
                 raise RuntimeIntegrationError(f"GGUF file not found: {args.gguf}")
+            source_ref = (
+                args.gguf.resolve().as_posix()
+                if args.gguf is not None
+                else str(args.from_model)
+            )
             modelfile_text = render_modelfile(
                 profile,
-                gguf_path=args.gguf,
+                source_ref=source_ref,
                 context_window=args.context_window,
             )
             if args.print_only:
@@ -180,6 +250,39 @@ def dispatch(args: argparse.Namespace) -> int:
         )
         print(response)
         return 0
+    if args.command == "claude-code":
+        profile = load_profile(args.profile or settings.default_profile)
+        model_name = args.model or settings.default_model or profile.default_model_name
+        extra_args = _normalize_passthrough_args(args.claude_args)
+        if args.claude_command == "env":
+            print(
+                format_shell_snippet(
+                    shell=args.shell,
+                    host=settings.ollama_host,
+                    model=model_name,
+                    extra_args=extra_args,
+                )
+            )
+            return 0
+        if args.claude_command == "launch":
+            claude_binary()
+            if not args.skip_model_check:
+                ensure_model_available(host=settings.ollama_host, model=model_name)
+            if args.print_only:
+                print(
+                    format_shell_snippet(
+                        shell=args.shell,
+                        host=settings.ollama_host,
+                        model=model_name,
+                        extra_args=extra_args,
+                    )
+                )
+                return 0
+            return launch_claude_code(
+                host=settings.ollama_host,
+                model=model_name,
+                extra_args=extra_args,
+            )
     return 1
 
 
@@ -201,8 +304,20 @@ def _run_doctor(settings: Settings) -> None:
     print(f"ollama binary: {ollama_binary}")
     print(f"ollama version: {ollama_version}")
     print(f"ollama status: {ollama_status}")
+    try:
+        print(f"claude binary: {claude_binary()}")
+        print(f"claude version: {claude_version()}")
+    except FreedomCoderError:
+        print("claude binary: not found")
+        print("claude version: unavailable")
 
 
 def _command_output(command: list[str]) -> str:
     completed = subprocess.run(command, capture_output=True, text=True, check=False)
     return (completed.stdout or completed.stderr).strip() or "unknown"
+
+
+def _normalize_passthrough_args(values: list[str]) -> list[str]:
+    if values and values[0] == "--":
+        return values[1:]
+    return values
