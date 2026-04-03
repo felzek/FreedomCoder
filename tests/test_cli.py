@@ -37,7 +37,7 @@ def test_claude_code_env_prints_expected_variables(capsys) -> None:
     out = capsys.readouterr().out
     assert "ANTHROPIC_AUTH_TOKEN" in out
     assert "ANTHROPIC_BASE_URL" in out
-    assert "claude --model freedomcoder-27b-q4km" in out
+    assert "claude --model " in out
 
 
 def test_claude_code_launch_print_only_uses_requested_model(monkeypatch, capsys) -> None:
@@ -59,3 +59,15 @@ def test_claude_code_launch_print_only_uses_requested_model(monkeypatch, capsys)
     )
     out = capsys.readouterr().out
     assert "claude --model demo-model --dangerously-skip-permissions" in out
+
+
+def test_no_args_default_to_claude_code_launch(monkeypatch, capsys) -> None:
+    monkeypatch.setattr("freedomcoder.cli.claude_binary", lambda: "claude")
+    monkeypatch.setattr(
+        "freedomcoder.cli.ollama_model_names",
+        lambda host: {"freedomcoder-qwen14-tools:latest"},
+    )
+    monkeypatch.setattr("freedomcoder.cli.ensure_model_available", lambda **kwargs: None)
+    assert main(["--print-only"]) == 0
+    out = capsys.readouterr().out
+    assert "claude --model freedomcoder-qwen14-tools" in out

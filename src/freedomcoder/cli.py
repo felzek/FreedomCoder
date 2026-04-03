@@ -17,10 +17,18 @@ from freedomcoder.claude_code import (
 from freedomcoder.config import load_project_instructions, load_settings
 from freedomcoder.errors import FreedomCoderError, RuntimeIntegrationError
 from freedomcoder.hf import download_profile_quant
-from freedomcoder.ollama import chat, create_model, ollama_tags, render_modelfile
-from freedomcoder.models import Settings
+from freedomcoder.ollama import (
+    chat,
+    create_model,
+    ollama_model_names,
+    ollama_tags,
+    render_modelfile,
+)
+from freedomcoder.models import ModelProfile, Settings
 from freedomcoder.profiles import format_profile, list_profiles, load_profile
 from freedomcoder.prompting import build_task_prompt, collect_file_contexts
+
+KNOWN_COMMANDS = frozenset({"doctor", "profiles", "pull", "ollama", "task", "claude-code"})
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -165,8 +173,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    raw_args = list(sys.argv[1:] if argv is None else argv)
     parser = build_parser()
-    args = parser.parse_args(argv)
+    args = parser.parse_args(_prepare_args(raw_args))
     try:
         return dispatch(args)
     except FreedomCoderError as exc:
@@ -252,7 +261,11 @@ def dispatch(args: argparse.Namespace) -> int:
         return 0
     if args.command == "claude-code":
         profile = load_profile(args.profile or settings.default_profile)
-        model_name = args.model or settings.default_model or profile.default_model_name
+        model_name = _resolve_claude_model_name(
+            settings=settings,
+            profile=profile,
+            requested_model=args.model,
+        )
         extra_args = _normalize_passthrough_args(args.claude_args)
         if args.claude_command == "env":
             print(
@@ -304,6 +317,11 @@ def _run_doctor(settings: Settings) -> None:
     print(f"ollama binary: {ollama_binary}")
     print(f"ollama version: {ollama_version}")
     print(f"ollama status: {ollama_status}")
+    profile = load_profile(settings.default_profile)
+    print(
+        "default claude model: "
+        f"{_resolve_claude_model_name(settings=settings, profile=profile, requested_model=None)}"
+    )
     try:
         print(f"claude binary: {claude_binary()}")
         print(f"claude version: {claude_version()}")
@@ -321,3 +339,40 @@ def _normalize_passthrough_args(values: list[str]) -> list[str]:
     if values and values[0] == "--":
         return values[1:]
     return values
+
+
+def _prepare_args(raw_args: list[str]) -> list[str]:
+    if not raw_args:
+        return ["claude-code", "launch"]
+    first = raw_args[0]
+    if first in {"-h", "--help", "help"}:
+        return raw_args
+    if first in KNOWN_COMMANDS:
+        return raw_args
+    return ["claude-code", "launch", *raw_args]
+
+
+def _resolve_claude_model_name(
+    *,
+    settings: Settings,
+    profile: ModelProfile,
+    requested_model: str | None,
+) -> str:
+    if requested_model:
+        return requested_model
+    preferred = settings.default_model or profile.default_model_name
+    try:
+        installed = {name.removesuffix(":latest") for name in ollama_model_names(settings.ollama_host)}
+    except FreedomCoderError:
+        return preferred
+    if preferred in installed:
+        return preferred
+    freedomcoder_models = sorted(name for name in installed if name.startswith("freedomcoder-"))
+    if profile.default_model_name in freedomcoder_models:
+        return profile.default_model_name
+    tools_models = [name for name in freedomcoder_models if name.endswith("-tools")]
+    if tools_models:
+        return tools_models[0]
+    if freedomcoder_models:
+        return freedomcoder_models[0]
+    return preferred

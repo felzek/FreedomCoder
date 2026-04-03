@@ -81,6 +81,18 @@ FreedomCoder does **not** claim that `Qwen3.5-27B-heretic-v2` is pleasant on low
 uv sync
 ```
 
+After installation, the default `freedomcoder` command launches Claude Code against the local Ollama-backed model path.
+
+```powershell
+uv run freedomcoder
+```
+
+If you want to inspect the exact launch command first:
+
+```powershell
+uv run freedomcoder --print-only
+```
+
 ### 2. Inspect built-in model profiles
 
 ```powershell
@@ -138,6 +150,8 @@ Then launch Claude Code against the local FreedomCoder model:
 ```powershell
 uv run freedomcoder claude-code launch
 ```
+
+This is also what the bare `freedomcoder` command does by default.
 
 If you want to inspect the command without launching:
 
