@@ -1,0 +1,37 @@
+id = "constrained"
+label = "Constrained Heretic 27B"
+model_id = "mradermacher/Qwen3.5-27B-heretic-v2-GGUF"
+source_provider = "huggingface"
+upstream_lineage = "Qwen3.5-27B-heretic-v2"
+description = "Lower-memory profile for the same Heretic 27B lineage, using the mradermacher GGUF mirror to expose Q3_K_M."
+intended_role = "Constrained-memory coding workflow for users who still want this model lineage but cannot justify the flagship Q4_K_M footprint."
+context_strategy = "Keep context tight. Start at 8k to 16k if the machine is close to its memory ceiling."
+recommended_quant = "Q3_K_M"
+when_to_use = "Use when Q4_K_M is too heavy for your machine but you still want the Heretic 27B lineage."
+latency_notes = "Q3_K_M is still a large model and can remain slow on mixed CPU/GPU or RAM-constrained systems."
+memory_notes = "Q3_K_M is materially lighter than Q4_K_M, but it is still a serious local model and not a lightweight laptop default."
+default_model_name = "freedomcoder-27b-q3km"
+notes = [
+  "The exact llmfan46 GGUF repo does not currently publish Q3_K_M, so this profile uses the mradermacher mirror for the same lineage.",
+  "This profile exists to document the requested constrained quant strategy honestly rather than pretending the flagship repo ships every quant.",
+]
+
+[quants]
+Q3_K_M = "Qwen3.5-27B-heretic-v2.Q3_K_M.gguf"
+Q3_K_L = "Qwen3.5-27B-heretic-v2.Q3_K_L.gguf"
+Q3_K_S = "Qwen3.5-27B-heretic-v2.Q3_K_S.gguf"
+Q4_K_M = "Qwen3.5-27B-heretic-v2.Q4_K_M.gguf"
+Q4_K_S = "Qwen3.5-27B-heretic-v2.Q4_K_S.gguf"
+Q5_K_M = "Qwen3.5-27B-heretic-v2.Q5_K_M.gguf"
+Q5_K_S = "Qwen3.5-27B-heretic-v2.Q5_K_S.gguf"
+Q6_K = "Qwen3.5-27B-heretic-v2.Q6_K.gguf"
+Q8_0 = "Qwen3.5-27B-heretic-v2.Q8_0.gguf"
+
+[generation_defaults]
+temperature = 0.2
+top_p = 0.95
+top_k = 20
+presence_penalty = 0.0
+repetition_penalty = 1.05
+max_tokens = 1536
+enable_thinking = false

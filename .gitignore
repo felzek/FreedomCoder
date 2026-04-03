@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.mypy_cache/
+
+# Local project state
+.freedomcoder/
+models/
+downloads/
+
+# Env
+.env
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local model artifacts
+Modelfile.*
+*.gguf
+*.gguf.*
+
+# Existing local machine artifacts
+dxdiag.txt

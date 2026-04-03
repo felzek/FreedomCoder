@@ -1,0 +1,10 @@
+default_profile = "flagship"
+
+[runtime]
+ollama_host = "http://127.0.0.1:11434"
+default_model = "freedomcoder-27b-q4km"
+
+[agent]
+max_context_chars = 24000
+max_file_bytes = 12000
+instructions_path = "AGENTS.md"

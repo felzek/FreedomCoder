@@ -1,0 +1,35 @@
+id = "flagship"
+label = "Flagship Heretic 27B"
+model_id = "llmfan46/Qwen3.5-27B-heretic-v2-GGUF"
+source_provider = "huggingface"
+upstream_lineage = "Qwen3.5-27B-heretic-v2"
+description = "Primary local coding-agent profile for the community Heretic / decensored Qwen3.5-27B GGUF lineage."
+intended_role = "Highest-quality local coding workflow for users who deliberately want the flagship Heretic 27B path."
+context_strategy = "Start conservatively at 16k to 32k context on consumer hardware and raise only after proving memory headroom."
+recommended_quant = "Q4_K_M"
+when_to_use = "Use when local coding quality matters more than latency and your machine can sustain a large 27B GGUF workflow."
+latency_notes = "Expect slow first-token latency and meaningful memory pressure on consumer hardware."
+memory_notes = "The flagship llmfan46 Q4_K_M artifact is roughly 16.5 GB before context cache growth. Larger quants require substantially more memory."
+default_model_name = "freedomcoder-27b-q4km"
+notes = [
+  "This profile is centered on the exact flagship runtime target requested for the repository.",
+  "This model family should be described as a community Heretic / decensored derivative, not an official uncensored Qwen release.",
+]
+
+[quants]
+Q4_K_M = "Qwen3.5-27B-heretic-v2-Q4_K_M.gguf"
+Q4_K_S = "Qwen3.5-27B-heretic-v2-Q4_K_S.gguf"
+Q5_K_M = "Qwen3.5-27B-heretic-v2-Q5_K_M.gguf"
+Q5_K_S = "Qwen3.5-27B-heretic-v2-Q5_K_S.gguf"
+Q6_K = "Qwen3.5-27B-heretic-v2-Q6_K.gguf"
+Q8_0 = "Qwen3.5-27B-heretic-v2-Q8_0.gguf"
+BF16 = "Qwen3.5-27B-heretic-v2-BF16.gguf"
+
+[generation_defaults]
+temperature = 0.2
+top_p = 0.95
+top_k = 20
+presence_penalty = 0.0
+repetition_penalty = 1.05
+max_tokens = 2048
+enable_thinking = false
